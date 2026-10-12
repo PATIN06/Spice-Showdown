@@ -111,3 +111,8 @@ textarea.how{min-height:120px;line-height:1.6}
 .guide ol b{color:var(--cream)}
 .guide a{color:var(--gold);overflow-wrap:anywhere}
 #ghPanel .check{margin-top:4px}
+
+.diag{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:6px;font-size:14px}
+.diag li{padding:8px 12px;border-radius:10px;background:rgba(255,255,255,.05);overflow-wrap:anywhere}
+.diag li.ok{color:var(--ok)}
+.diag li.bad{color:#ffb5a6;background:rgba(255,59,29,.12)}

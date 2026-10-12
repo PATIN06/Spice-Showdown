@@ -11,7 +11,15 @@ var SS=window.SS,store=SS.store;
 var url=String((window.SS_CONFIG||{}).statsUrl||'').trim();
 var enabled=/^https:\/\/script\.google\.com\/(a\/macros\/[A-Za-z0-9.-]+\/)?macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(url);
 var KEY_OUTBOX='ss.outbox.v3',RETRY={busy:1,network:1,timeout:1},memBox=[];
-var st=SS.stats={enabled:enabled,url:url};
+var st=SS.stats={enabled:enabled,url:url,invalid:!!url&&!enabled};
+/* คำอธิบายภาษาไทยสำหรับผลที่ไม่สำเร็จ */
+st.explain=function(j){
+  if(st.invalid)return 'ที่อยู่ statsUrl ใน config.js ไม่ถูกต้อง ต้องขึ้นต้น https://script.google.com/macros/s/ และลงท้าย /exec';
+  if(!j||j.ok)return '';
+  if(j.error==='network')return 'ติดต่อสคริปต์ Google ไม่ได้ ตรวจว่า Deploy เป็น Web app แบบ Who has access: Anyone และใช้ URL ที่ลงท้าย /exec';
+  if(j.error==='not_setup')return 'สคริปต์ยังไม่ได้รัน setup() ให้เปิด Apps Script แล้วรัน setup';
+  return 'สคริปต์ตอบกลับผิดปกติ ('+(j.error||'ไม่ทราบสาเหตุ')+')';
+};
 
 SS.gameId=function(){
   var a='abcdefghijklmnopqrstuvwxyz0123456789',out='',i,buf;

@@ -194,14 +194,15 @@ function setState(text,retry,loading){
   $('#statsStateText').textContent=text;
   $('#statsRetry').hidden=!retry;
 }
+var lastErr='';
 function showEveryone(){
-  var tok=++statsToken;
+  var tok=++statsToken;lastErr='';
   $('#bars').innerHTML='';$('#topLine').textContent='';$('#statsNote').textContent='';$('#resetDevice').hidden=true;
   setState('กำลังโหลดโหวตของทุกคน...',false,true);
   var ready=G.submitP?G.submitP.then(function(){},function(){}):Promise.resolve();
   ready.then(function(){return stats.get()}).then(function(j){
     if(tok!==statsToken)return;
-    if(!j||!j.ok||!Array.isArray(j.rows))throw new Error('stats');
+    if(!j||!j.ok||!Array.isArray(j.rows)){lastErr=stats.explain(j);throw new Error('stats')}
     var rows=everyoneRows(j,G.champ&&G.champ.id);
     $('#statsState').hidden=true;
     SS.renderBars($('#bars'),rows);
@@ -209,7 +210,7 @@ function showEveryone(){
     $('#statsNote').textContent='มีคนโหวตแล้ว '+(Number(j.players)||0)+' คน นับเฉพาะจานสุดท้ายที่แต่ละคนเลือก ไม่นับจานที่กดระหว่างเกม';
   }).catch(function(){
     if(tok!==statsToken)return;
-    setState('โหลดสถิติรวมไม่ได้ในตอนนี้',true,false);
+    setState('โหลดสถิติรวมไม่ได้ในตอนนี้ '+(lastErr||''),true,false);
   });
 }
 function showDevice(){
@@ -223,25 +224,34 @@ function showDevice(){
   rows.sort(function(a,b){return b.finals-a.finals||a.name.localeCompare(b.name)});
   SS.renderBars($('#bars'),rows);
   $('#topLine').textContent=SS.topLine(rows,'final');
-  $('#statsNote').textContent='ตอนนี้เห็นเฉพาะเกมที่เล่นในเครื่องนี้ ('+(t.games||0)+' เกม) ผู้จัดยังไม่ได้เปิดสถิติรวมของทุกคน';
+  $('#statsNote').textContent='ตอนนี้เห็นเฉพาะเกมที่เล่นในเครื่องนี้ ('+(t.games||0)+' เกม) '+(stats.invalid?stats.explain():'ผู้จัดยังไม่ได้เปิดสถิติรวมของทุกคน');
   $('#resetDevice').hidden=false;
 }
 
-/* กระดานโหวตที่หน้าแรกก่อนเล่น */
+/* กระดานโหวตที่หน้าแรกก่อนเล่น: โชว์เสมอเมื่อเปิดสถิติรวม (ยังไม่มีโหวตก็บอกว่าว่าง) */
 var boardTok=0;
+function boardMsg(text,retry){
+  $('#boardBars').innerHTML='';$('#boardTop').textContent='';$('#boardCount').textContent='';
+  $('#boardNote').textContent=text;
+  $('#boardRetry').hidden=!retry;
+}
 function loadBoard(){
-  if(!shared||isDraft){$('#board').hidden=true;return}
+  if(isDraft||(!shared&&!stats.invalid)){$('#board').hidden=true;return}
+  $('#board').hidden=false;
+  if(stats.invalid){boardMsg(stats.explain(),false);return}
   var tok=++boardTok;
+  boardMsg('กำลังโหลดโหวตของทุกคน...',false);
   stats.get().then(function(j){
-    if(tok!==boardTok||!j||!j.ok||!Array.isArray(j.rows))return;
+    if(tok!==boardTok)return;
+    if(!j||!j.ok||!Array.isArray(j.rows)){boardMsg('โหลดสถิติรวมไม่สำเร็จ: '+stats.explain(j),true);return}
     var total=Number(j.players)||0;
-    if(total<1){$('#board').hidden=true;return}
+    if(total<1){boardMsg('ยังไม่มีใครโหวต เล่นให้จบเกมเพื่อเป็นคนแรก',false);return}
     var rows=everyoneRows(j,null);
-    $('#board').hidden=false;
     $('#boardCount').textContent=total+' คนโหวตแล้ว';
     SS.renderBars($('#boardBars'),rows);
     $('#boardTop').textContent=SS.topLine(rows,'final');
     $('#boardNote').textContent='นับเฉพาะจานสุดท้ายที่แต่ละคนเลือก เล่นจบเกมเพื่อร่วมโหวตด้วย';
+    $('#boardRetry').hidden=true;
   });
 }
 
@@ -259,6 +269,7 @@ $('#quit').addEventListener('click',function(){lock(true);show('start')});
 $('#again').addEventListener('click',startGame);
 $('#home').addEventListener('click',function(){show('start')});
 $('#statsRetry').addEventListener('click',showEveryone);
+$('#boardRetry').addEventListener('click',loadBoard);
 SS.twoStep($('#resetDevice'),'แตะอีกครั้งเพื่อล้าง',function(){
   if(!store.ok)return;
   store.set(SS.KEY_TOTALS,{games:0,items:{}});

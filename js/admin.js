@@ -504,6 +504,22 @@ function refreshStats(){
   statsBusy=true;
   stats.get().then(function(j){statsBusy=false;if(j&&j.ok&&Array.isArray(j.rows)&&published)paintStats(j)},function(){statsBusy=false});
 }
+function diag(){
+  var ul=$('#diag');ul.innerHTML='';
+  function line(ok,t){var li=el('li',ok?'ok':'bad',(ok?'ผ่าน: ':'ไม่ผ่าน: ')+t);ul.appendChild(li);return ok}
+  var cfg=(window.SS_CONFIG||{});
+  if(!line(!!cfg.statsUrl,cfg.statsUrl?'พบ statsUrl ใน config.js':'config.js ยังไม่มี statsUrl (ว่างอยู่) ถ้าเพิ่งแก้ ให้กดรีเฟรชแบบแรง Ctrl+Shift+R เพราะเบราว์เซอร์อาจจำไฟล์เก่า')) return;
+  if(!line(stats.enabled,stats.enabled?'รูปแบบ URL ถูกต้อง':stats.explain()))return;
+  ul.appendChild(el('li','',' กำลังเรียกสคริปต์...'));
+  stats.get().then(function(r){
+    ul.removeChild(ul.lastChild);
+    if(!line(!!(r&&r.ok),r&&r.ok?'สคริปต์ตอบกลับได้':stats.explain(r)))return;
+    line(true,'มีผู้โหวตแล้ว '+(Number(r.players)||0)+' คน ('+(r.rows||[]).length+' จานในแท็บ Finals)');
+    if(typeof r.players!=='number')line(false,'สคริปต์ตอบรูปแบบเก่า ให้วาง Code.gs ล่าสุด แล้ว Deploy เป็น New version');
+    paintStats(r);
+  });
+}
+$('#diagBtn').addEventListener('click',diag);
 function initStats(){
   if(!stats.enabled){
     $('#statBars').innerHTML='';
