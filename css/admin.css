@@ -1,0 +1,45 @@
+/* Admin styles: calmer than the player. Same tokens, no embers. */
+.page-head{padding-block:clamp(14px,3vw,32px) 6px;max-width:760px}
+.page-head h1{font-size:clamp(2rem,6vw,3.6rem)}
+.lock{max-width:440px;margin:clamp(24px,9vh,90px) auto 0}
+.lock h1{font-size:clamp(1.8rem,6vw,2.6rem);margin-bottom:20px}
+
+.status{display:flex;gap:14px;align-items:flex-start;padding:16px 20px;border-radius:18px;border:1px solid var(--line);background:rgba(255,255,255,.04);margin-top:22px}
+.status.dirty{border-color:rgba(255,210,63,.55);background:rgba(255,210,63,.08)}
+.status .dot{flex:none;width:12px;height:12px;border-radius:50%;background:var(--ok);margin-top:7px;box-shadow:0 0 12px rgba(111,213,138,.7)}
+.status.dirty .dot{background:var(--gold);box-shadow:0 0 12px rgba(255,210,63,.7)}
+.status b{display:block;font-weight:700}
+.status p{margin:2px 0 0;color:var(--cream-dim);font-size:14px}
+
+.admin-grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(300px,1fr);gap:20px;margin-top:20px;align-items:start}
+.col{display:grid;gap:20px;min-width:0}
+
+.alist{list-style:none;margin:14px 0 0;padding:0}
+.arow{display:grid;grid-template-columns:104px minmax(0,1fr) auto;gap:14px;align-items:start;padding:16px 0;border-top:1px solid var(--line)}
+.arow:first-child{border-top:0}
+.apic{display:grid;gap:8px}
+.apic img{width:104px;height:78px;border-radius:12px;object-fit:cover;background:var(--ink-3)}
+.apic .btn{min-height:34px;padding:6px 10px;font-size:12px}
+.afields{display:grid;gap:10px;min-width:0}
+.aact{display:grid;gap:6px}
+.iconbtn{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.06);display:grid;place-items:center;cursor:pointer;color:var(--cream);padding:0;transition:background .2s,transform .2s}
+.iconbtn:hover{background:rgba(255,255,255,.14)}
+.iconbtn.danger:hover{background:var(--chili)}
+.iconbtn:disabled{opacity:.35;cursor:not-allowed}
+.iconbtn svg{width:16px;height:16px}
+
+.pub-actions{display:grid;gap:10px;margin-top:16px}
+.pub-actions .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.jsonbox{width:100%;min-height:160px;font:12px/1.4 var(--f-mono);border-radius:14px;border:1px solid var(--line);background:rgba(0,0,0,.35);color:var(--cream);padding:12px;margin-top:12px}
+.panel p.small{font-size:14px;color:var(--cream-dim);margin:10px 0 0}
+.panel p.small b{color:var(--cream)}
+
+@media (max-width:900px){
+  .admin-grid{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:560px){
+  .arow{grid-template-columns:88px minmax(0,1fr)}
+  .apic img{width:88px;height:66px}
+  .aact{grid-column:1/-1;grid-auto-flow:column;justify-content:start}
+  .pub-actions .row2{grid-template-columns:minmax(0,1fr)}
+}

@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "title": "Spice Showdown",
+  "tagline": "Two spicy dishes enter. You pick the one you would rather eat. The loser is swapped for a fresh challenger, and the winner stays to defend.",
+  "shuffle": true,
+  "dishes": [
+    { "id": "tomyum", "name": "Tom Yum Goong", "heat": 3, "art": "tomyum" },
+    { "id": "somtam", "name": "Som Tam Thai", "heat": 4, "art": "somtam" },
+    { "id": "krapao", "name": "Pad Kra Pao", "heat": 4, "art": "krapao" },
+    { "id": "mala", "name": "Mala Hot Pot", "heat": 5, "art": "mala" },
+    { "id": "tteok", "name": "Tteokbokki", "heat": 3, "art": "tteok" },
+    { "id": "buldak", "name": "Buldak Fire Noodles", "heat": 5, "art": "buldak" },
+    { "id": "vindaloo", "name": "Chicken Vindaloo", "heat": 4, "art": "vindaloo" },
+    { "id": "nashville", "name": "Nashville Hot Chicken", "heat": 5, "art": "nashville" }
+  ]
+}
