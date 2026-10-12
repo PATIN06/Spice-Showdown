@@ -43,3 +43,71 @@
   .aact{grid-column:1/-1;grid-auto-flow:column;justify-content:start}
   .pub-actions .row2{grid-template-columns:minmax(0,1fr)}
 }
+
+/* ---- remote mode: save, status, live stats ---- */
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes livePulse{0%{box-shadow:0 0 0 0 rgba(111,213,138,.65)}100%{box-shadow:0 0 0 10px rgba(111,213,138,0)}}
+@keyframes dotPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
+@keyframes drawTick{from{stroke-dashoffset:30}to{stroke-dashoffset:0}}
+@keyframes drawRing{from{stroke-dashoffset:70}to{stroke-dashoffset:0}}
+@keyframes flashRow{0%{background:rgba(255,210,63,.28)}100%{background:transparent}}
+@keyframes leaveRow{to{opacity:0;transform:translateX(40px) scale(.97);max-height:0;padding-block:0}}
+@keyframes enterRow{from{opacity:0;transform:translateY(-12px) scale(.98)}}
+@keyframes sheen{to{transform:translateX(120%)}}
+@keyframes shake{20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
+.status{position:relative;overflow:hidden;transition:border-color .3s,background .3s}
+.status>div:not(.prog){min-width:0}
+.status .tick{display:none;flex:none;width:26px;height:26px;margin-top:0;fill:none;stroke:var(--ok);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.status .tick circle{stroke-dasharray:70;stroke-dashoffset:0}
+.status .tick path{stroke-dasharray:30;stroke-dashoffset:0}
+.status.just-saved .tick{display:block}
+.status.just-saved .dot{display:none}
+.status.just-saved .tick circle{animation:drawRing .6s ease-out both}
+.status.just-saved .tick path{animation:drawTick .45s .35s ease-out both}
+.status.dirty .dot,.status.saving .dot{animation:dotPulse 1.3s ease-in-out infinite}
+.status.saving{border-color:rgba(255,138,31,.6);background:rgba(255,138,31,.08)}
+.status.saving .dot{background:var(--flame);box-shadow:0 0 12px rgba(255,138,31,.8)}
+.status.error{border-color:rgba(255,59,29,.7);background:rgba(255,59,29,.1)}
+.status.error .dot{background:var(--chili);box-shadow:0 0 12px rgba(255,59,29,.8)}
+.status.shake{animation:shake .45s}
+.prog{position:absolute;left:0;right:0;bottom:0;height:3px;background:transparent;opacity:0;transition:opacity .25s}
+.prog i{display:block;height:100%;width:0;background:var(--heat);transition:width .45s cubic-bezier(.2,.8,.2,1)}
+.status.saving .prog{opacity:1}
+
+.conflict{margin-top:16px;border-color:rgba(255,210,63,.55);animation:rise .4s both}
+.savebtn{position:relative;overflow:hidden}
+.savebtn:not(:disabled)::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.45) 50%,transparent 70%);transform:translateX(-120%);animation:sheen 3.2s ease-in-out infinite}
+.savebtn .spin{display:none;width:15px;height:15px;margin-right:8px;border-radius:50%;border:2px solid rgba(42,10,5,.35);border-top-color:#2a0a05;animation:spin .8s linear infinite;vertical-align:-2px}
+.savebtn.busy .spin{display:inline-block}
+.savebtn.busy::after{display:none}
+.savebtn:disabled{opacity:.7;cursor:progress}
+
+.arow.new{animation:enterRow .45s cubic-bezier(.2,.8,.2,1) both}
+.arow.flash{animation:flashRow 1.4s ease-out}
+.arow.leaving{overflow:hidden;animation:leaveRow .35s ease-in forwards}
+.arow.uploading .apic img{opacity:.45}
+
+.live-tag{display:inline-flex;align-items:center;gap:7px;font:500 12px var(--f-mono);letter-spacing:0;text-transform:uppercase;color:var(--ok)}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--ok);animation:livePulse 1.8s ease-out infinite}
+h3.sub{font:600 13px var(--f-mono);letter-spacing:0;text-transform:uppercase;color:var(--cream-dim);margin:22px 0 8px}
+.recent{list-style:none;margin:0 0 8px;padding:0}
+.recent li{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--line);font-size:14px;animation:rise .4s both}
+.recent li:first-child{border-top:0}
+.recent li b{font-weight:600;overflow-wrap:anywhere}
+.recent li span{color:var(--cream-dim);font-family:var(--f-mono);font-size:12px;white-space:nowrap}
+.lock.shake{animation:shake .45s}
+
+/* ---- GitHub publish ---- */
+@keyframes indet{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}
+.status.waiting{border-color:rgba(255,138,31,.6);background:rgba(255,138,31,.08)}
+.status.waiting .dot{background:var(--flame);box-shadow:0 0 12px rgba(255,138,31,.8);animation:dotPulse 1.3s ease-in-out infinite}
+.status.waiting .prog{opacity:1}
+.status.waiting .prog i{width:40%!important;animation:indet 1.6s ease-in-out infinite;transition:none}
+textarea.how{min-height:120px;line-height:1.6}
+.gh-who{display:flex;align-items:center;gap:10px;margin:12px 0 0;font-size:14px;color:var(--cream);overflow-wrap:anywhere}
+.guide{margin-top:16px;border-top:1px solid var(--line);padding-top:12px}
+.guide summary{cursor:pointer;color:var(--gold);font-weight:500;min-height:36px;display:flex;align-items:center}
+.guide ol{margin:8px 0 0;padding-left:20px;display:grid;gap:8px;font-size:14px;color:var(--cream-dim)}
+.guide ol b{color:var(--cream)}
+.guide a{color:var(--gold);overflow-wrap:anywhere}
+#ghPanel .check{margin-top:4px}

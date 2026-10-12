@@ -12,7 +12,10 @@ SS.KEY_DRAFT='ss.draft.v1';
 SS.KEY_TOTALS='ss.totals.v1';
 SS.KEY_UNLOCK='ss.admin.ok';
 SS.MENU_URL='data/menu.json';
-SS.DEFAULT_TAGLINE='Two spicy dishes enter. You pick the one you would rather eat. The loser is swapped for a fresh challenger, and the winner stays to defend.';
+SS.DEFAULT_TITLE='ศึกจานเผ็ด';
+SS.DEFAULT_TAGLINE='อาหารเผ็ดสองจานขึ้นเวทีมาประชันกัน เลือกจานที่อยากกินมากกว่า จานที่แพ้จะถูกแทนด้วยตัวท้าชิงคนใหม่ ส่วนผู้ชนะอยู่ป้องกันตำแหน่งต่อ';
+SS.DEFAULT_HOWTO=['เลือกจานโปรดจากสองจานที่ขึ้นบนหน้าจอ','จานที่ไม่ได้เลือกจะถูกแทนด้วยจานใหม่จากเมนู','เลือกไปเรื่อย ๆ จนเมนูหมด จานสุดท้ายที่เลือกคือผู้ชนะ'];
+SS.MAX_HOWTO=6;
 
 SS.el=function(tag,cls,text){var e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e};
 SS.uid=function(){return 'd'+Date.now().toString(36)+Math.random().toString(36).slice(2,7)};
@@ -23,11 +26,11 @@ SS.CHILI='<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d=
 SS.CROSS='<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>';
 SS.UP='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 10l5-5 5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>';
 SS.DOWN='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 6l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>';
-SS.WORDS=['Mild','Warm','Hot','Fiery','Scorching'];
+SS.WORDS=['เผ็ดนิดเดียว','เผ็ดน้อย','เผ็ดกลาง','เผ็ดจัด','เผ็ดสุดโหด'];
 SS.heatHTML=function(n){
   var h='';
   for(var i=1;i<=5;i++){h+='<i class="c'+(i<=n?' on':'')+'">'+SS.CHILI+'</i>'}
-  return '<span class="heat" role="img" aria-label="Heat '+n+' of 5, '+SS.WORDS[n-1]+'">'+h+'</span>';
+  return '<span class="heat" role="img" aria-label="ความเผ็ด '+n+' จาก 5 ระดับ '+SS.WORDS[n-1]+'">'+h+'</span>';
 };
 SS.heatPicker=function(value,onChange){
   var box=SS.el('div','heat-pick'),word=SS.el('span','heat-word'),btns=[];
@@ -39,7 +42,7 @@ SS.heatPicker=function(value,onChange){
   for(var i=1;i<=5;i++){
     (function(n){
       var b=SS.el('button','hp');b.type='button';b.innerHTML=SS.CHILI;
-      b.setAttribute('aria-label','Heat '+n+' of 5, '+SS.WORDS[n-1]);
+      b.setAttribute('aria-label','ความเผ็ด '+n+' จาก 5 ระดับ '+SS.WORDS[n-1]);
       b.addEventListener('click',function(){value=n;paint();if(onChange)onChange(n)});
       btns.push(b);box.insertBefore(b,word);
     })(i);
@@ -198,22 +201,48 @@ function placeholderURI(name){
 SS.artURI=artURI;
 SS.placeholderURI=placeholderURI;
 SS.imgSrc=function(d){return d.img||(d.art&&ART[d.art]?artURI(d.art):placeholderURI(d.name))};
+/* Sets an <img> to a dish picture. If the photo fails to load, a drawing is shown instead. */
+SS.setImg=function(img,dish){
+  img.onerror=function(){
+    img.onerror=null;
+    img.src=(dish.art&&ART[dish.art])?artURI(dish.art):placeholderURI(dish.name);
+  };
+  img.src=SS.imgSrc(dish);
+};
+/* Counts a number up inside a node. Always ends on the right value. */
+SS.countUp=function(node,to,delay,ms){
+  to=Number(to)||0;
+  var dur=ms||800,wait=delay||0;
+  if(SS.RM||to===0){node.textContent=to;return}
+  node.textContent='0';
+  var done=function(){node.textContent=to};
+  setTimeout(function(){
+    var t0=(window.performance&&performance.now)?performance.now():0;
+    (function step(t){
+      var k=Math.min(1,((t||t0)-t0)/dur);
+      node.textContent=Math.round(to*(1-Math.pow(1-k,3)));
+      if(k<1&&window.requestAnimationFrame)window.requestAnimationFrame(step);else done();
+    })(t0);
+  },wait);
+  setTimeout(done,wait+dur+250);
+};
 
 /* ---------- menu data ---------- */
 SS.SAMPLE_MENU={
   version:1,
-  title:'Spice Showdown',
+  title:SS.DEFAULT_TITLE,
   tagline:SS.DEFAULT_TAGLINE,
+  howTo:SS.DEFAULT_HOWTO,
   shuffle:true,
   dishes:[
-    {id:'tomyum',name:'Tom Yum Goong',heat:3,art:'tomyum'},
-    {id:'somtam',name:'Som Tam Thai',heat:4,art:'somtam'},
-    {id:'krapao',name:'Pad Kra Pao',heat:4,art:'krapao'},
-    {id:'mala',name:'Mala Hot Pot',heat:5,art:'mala'},
-    {id:'tteok',name:'Tteokbokki',heat:3,art:'tteok'},
-    {id:'buldak',name:'Buldak Fire Noodles',heat:5,art:'buldak'},
-    {id:'vindaloo',name:'Chicken Vindaloo',heat:4,art:'vindaloo'},
-    {id:'nashville',name:'Nashville Hot Chicken',heat:5,art:'nashville'}
+    {id:'tomyum',name:'ต้มยำกุ้ง',heat:3,art:'tomyum'},
+    {id:'somtam',name:'ส้มตำไทย',heat:4,art:'somtam'},
+    {id:'krapao',name:'ผัดกะเพรา',heat:4,art:'krapao'},
+    {id:'mala',name:'หม่าล่าหม้อไฟ',heat:5,art:'mala'},
+    {id:'tteok',name:'ต็อกบกกี',heat:3,art:'tteok'},
+    {id:'buldak',name:'บูลดักเส้นไฟ',heat:5,art:'buldak'},
+    {id:'vindaloo',name:'ไก่วินดาลู',heat:4,art:'vindaloo'},
+    {id:'nashville',name:'ไก่ทอดแนชวิลล์',heat:5,art:'nashville'}
   ]
 };
 function isImg(v){
@@ -225,7 +254,7 @@ function clean(v,max){return typeof v==='string'?v.replace(/\s+/g,' ').trim().sl
 /* Turns anything (a parsed menu.json, a stored draft, garbage) into a safe menu object. */
 SS.normalizeMenu=function(m){
   m=(m&&typeof m==='object')?m:{};
-  var seen={},dishes=[];
+  var seen=Object.create(null),dishes=[];
   (Array.isArray(m.dishes)?m.dishes:[]).forEach(function(f){
     if(!f||typeof f.name!=='string'||!clean(f.name,40))return;
     if(dishes.length>=SS.MAX_DISHES)return;
@@ -236,7 +265,8 @@ SS.normalizeMenu=function(m){
     if(typeof f.art==='string'&&ART[f.art])d.art=f.art;
     dishes.push(d);
   });
-  var out={version:1,title:clean(m.title,40)||'Spice Showdown',tagline:clean(m.tagline,220)||SS.DEFAULT_TAGLINE,shuffle:m.shuffle!==false,dishes:dishes};
+  var how=(Array.isArray(m.howTo)?m.howTo:[]).map(function(x){return clean(x,120)}).filter(Boolean).slice(0,SS.MAX_HOWTO);
+  var out={version:(typeof m.version==='string'&&/^[\w.-]{1,40}$/.test(m.version))?m.version:'1',title:clean(m.title,40)||SS.DEFAULT_TITLE,tagline:clean(m.tagline,220)||SS.DEFAULT_TAGLINE,howTo:how.length?how:SS.DEFAULT_HOWTO.slice(),shuffle:m.shuffle!==false,dishes:dishes};
   if(typeof m.adminPinHash==='string'&&/^[a-z0-9]{6,80}$/.test(m.adminPinHash))out.adminPinHash=m.adminPinHash;
   return out;
 };
@@ -244,7 +274,7 @@ SS.normalizeMenu=function(m){
 SS.loadPublished=function(){
   var sample=function(){return {menu:SS.normalizeMenu(SS.SAMPLE_MENU),source:'sample'}};
   if(typeof fetch!=='function')return Promise.resolve(sample());
-  return fetch(SS.MENU_URL,{cache:'no-store'}).then(function(r){
+  return fetch(SS.MENU_URL+'?v='+Date.now(),{cache:'no-store'}).then(function(r){
     if(!r.ok)throw new Error('HTTP '+r.status);
     return r.json();
   }).then(function(j){return {menu:SS.normalizeMenu(j),source:'file'}}).catch(function(){return sample()});
@@ -277,36 +307,38 @@ SS.fileToData=function(file,max){
 /* rows: [{name, img, picks, duels}] already sorted. Returns the rows that share the top score. */
 SS.renderBars=function(ol,rows){
   ol.innerHTML='';
-  var max=1;rows.forEach(function(r){if(r.picks>max)max=r.picks});
-  var tops=rows.filter(function(r){return r.picks===max&&r.picks>0});
+  function sc(r){return r.score!=null?r.score:r.picks}
+  var max=1;rows.forEach(function(r){if(sc(r)>max)max=sc(r)});
   rows.forEach(function(r,i){
     var li=document.createElement('li');
-    var isTop=r.picks===max&&r.picks>0;
+    var s=sc(r),isTop=s===max&&s>0;
     if(isTop)li.className='top';
-    var im=document.createElement('img');im.src=r.img;im.alt='';
+    var im=document.createElement('img');im.alt='';SS.setImg(im,r.dish||{name:r.name,img:r.img});
     var body=document.createElement('div');
     var head=SS.el('div','bar-top');
     var nm=SS.el('span','bar-name',r.name);
-    if(isTop){nm.appendChild(SS.el('span','badge','Most picked'))}
+    if(isTop){nm.appendChild(SS.el('span','badge',r.badge||'ถูกเลือกมากสุด'))}
     var val=SS.el('span','bar-val');
-    var b=document.createElement('b');b.textContent=r.picks;
-    val.appendChild(b);
-    val.appendChild(document.createTextNode(' '+(r.picks===1?'pick':'picks')+' · '+r.duels+(r.duels===1?' duel':' duels')));
+    var b=document.createElement('b');SS.countUp(b,s,i*70,800);
+    val.appendChild(document.createTextNode(r.prefix||'เลือก '));val.appendChild(b);
+    val.appendChild(document.createTextNode(r.suffix||(' ครั้ง · ลงสนาม '+r.duels+' รอบ')));
     head.appendChild(nm);head.appendChild(val);
     var tr=SS.el('div','track');
     var fl=SS.el('div','fill');
-    fl.style.width=(r.picks>0?Math.max(4,Math.round(r.picks/max*100)):0)+'%';
+    fl.style.width=(s>0?Math.max(4,Math.round(s/max*100)):0)+'%';
     fl.style.animationDelay=(i*70)+'ms';
     tr.appendChild(fl);body.appendChild(head);body.appendChild(tr);
     li.appendChild(im);li.appendChild(body);ol.appendChild(li);
   });
-  return tops;
 };
-SS.topLine=function(rows){
-  var max=0;rows.forEach(function(r){if(r.picks>max)max=r.picks});
-  var tops=rows.filter(function(r){return r.picks===max&&r.picks>0});
-  if(tops.length===1)return tops[0].name+' with '+max+(max===1?' pick.':' picks.');
-  if(tops.length>1)return 'A tie at '+max+(max===1?' pick: ':' picks: ')+tops.map(function(t){return t.name}).join(', ')+'.';
+/* mode 'final' = จัดอันดับตามจำนวนครั้งที่ถูกเลือกเป็นจานสุดท้าย */
+SS.topLine=function(rows,mode){
+  function sc(r){return mode==='final'?(r.finals||0):r.picks}
+  var max=0;rows.forEach(function(r){if(sc(r)>max)max=sc(r)});
+  var tops=rows.filter(function(r){return sc(r)===max&&max>0});
+  var lead=mode==='final'?'จานที่คนเลือกเป็นจานสุดท้ายมากสุด: ':'';
+  if(tops.length===1)return lead+tops[0].name+' ('+max+' ครั้ง)'+(mode==='final'?'':' คือจานที่ถูกเลือกมากสุด');
+  if(tops.length>1)return (mode==='final'?lead:'เสมอกันที่ ')+tops.map(function(t){return t.name}).join(', ')+' ('+max+' ครั้งเท่ากัน)';
   return '';
 };
 })();
