@@ -14,6 +14,7 @@ function show(name){
   $$('.scene').forEach(function(s){s.hidden=s.id!=='scene-'+name});
   var el=$('#scene-'+name);el.classList.remove('enter');void el.offsetWidth;el.classList.add('enter');
   window.scrollTo(0,0);
+  if(name==='start')loadBoard();
 }
 function byId(id){for(var i=0;i<G.pool.length;i++){if(G.pool[i].id===id)return G.pool[i]}return null}
 
@@ -116,29 +117,25 @@ function choose(side){
 }
 
 /* ---------- verdict ---------- */
-/* แท็บสถิติที่สอง: 'everyone' (ทุกคน ผ่าน Google Sheet) หรือ 'device' (เฉพาะเครื่องนี้) หรือ null (ดูตัวอย่างฉบับร่าง) */
-function secondTab(){
+/* โหมดสถิติ: 'everyone' (ทุกคน ผ่าน Google Sheet), 'device' (เฉพาะเครื่องนี้ เมื่อยังไม่ได้เปิดสถิติรวม) หรือ null (ดูตัวอย่างฉบับร่าง) */
+function statsMode(){
   if(isDraft)return null;
   if(shared)return 'everyone';
   return store.ok?'device':null;
 }
+/* นับเฉพาะจานสุดท้ายของแต่ละเกม ไม่นับจานที่กดระหว่างทาง */
 function addTotals(){
   if(!store.ok)return null;
-  var t=SS.getTotals();
+  var t=SS.getTotals(),f=G.champ,k=f.name.trim().toLowerCase();
   t.games=(t.games||0)+1;
-  G.pool.forEach(function(f){
-    var k=f.name.trim().toLowerCase();
-    var it=t.items[k]||(t.items[k]={name:f.name,picks:0,duels:0});
-    it.name=f.name;it.picks+=G.picks[f.id]||0;it.duels+=G.duels[f.id]||0;
-  });
+  var it=t.items[k]||(t.items[k]={name:f.name,finals:0});
+  it.name=f.name;it.finals=(it.finals||0)+1;
   store.set(SS.KEY_TOTALS,t);
   return t;
 }
 function finish(champ){
-  G.champ=champ;
-  G.totals=null;
-  G.submitP=null;
-  var mode=secondTab();
+  G.champ=champ;G.totals=null;G.submitP=null;
+  var mode=statsMode();
   if(mode==='device')G.totals=addTotals();
   if(mode==='everyone'){
     var names={};G.pool.forEach(function(f){names[f.id]=f.name});
@@ -153,22 +150,20 @@ function renderResult(){
   SS.setImg($('#champImg'),c);$('#champImg').alt=c.name;
   $('#champName').textContent=c.name;
   $('#champHeat').innerHTML=SS.heatHTML(c.heat).replace('class="heat"','class="heat lg"');
-  var p=G.picks[c.id]||0,d=G.duels[c.id]||0;
-  $('#champLine').textContent='ถูกเลือก '+p+' ครั้ง จากที่ลงสนาม '+d+' รอบ';
-  var mode=secondTab();
-  $('#seg').hidden=!mode;
-  $('#tabAll').textContent=mode==='everyone'?'ทุกคน':'เครื่องนี้';
-  var ss=$('#saveState');
+  $('#champLine').textContent='จานนี้คือจานโปรดที่สุดของคุณในรอบนี้';
+  var mode=statsMode(),ss=$('#saveState');
+  $('#statsPanel').hidden=!mode;
   if(G.submitP){
     var mine=G.submitP;
-    ss.hidden=false;ss.className='save-state pending';ss.textContent='กำลังบันทึกผลของคุณเข้าสถิติรวม...';
+    ss.hidden=false;ss.className='save-state pending';ss.textContent='กำลังบันทึกโหวตของคุณ...';
     mine.then(function(r){
       if(G.submitP!==mine)return;
-      if(r&&r.ok){ss.className='save-state ok';ss.textContent='บันทึกผลของคุณเข้าสถิติรวมแล้ว'}
-      else{ss.className='save-state warn';ss.textContent='ตอนนี้เน็ตมีปัญหา ผลของคุณจะถูกส่งให้เองเมื่อกลับมาออนไลน์'}
+      if(r&&r.ok){ss.className='save-state ok';ss.textContent='บันทึกโหวตของคุณแล้ว (ถ้าเล่นใหม่แล้วเปลี่ยนใจ จะนับเฉพาะจานล่าสุด)'}
+      else{ss.className='save-state warn';ss.textContent='ตอนนี้เน็ตมีปัญหา โหวตของคุณจะถูกส่งให้เองเมื่อกลับมาออนไลน์'}
     });
   }else{ss.hidden=true}
-  setTab(mode==='everyone'?'all':'game');
+  if(mode==='everyone')showEveryone();
+  else if(mode==='device')showDevice();
   var log=$('#log');log.innerHTML='';
   G.log.forEach(function(l){
     var li=document.createElement('li');
@@ -181,28 +176,17 @@ function renderResult(){
   });
   $('#champName').focus({preventScroll:true});
 }
-function sortRows(rows){
-  rows.sort(function(a,b){return b.picks-a.picks||b.duels-a.duels||a.name.localeCompare(b.name)});
+
+/* แถวสถิติรวม: แท่งคือจำนวนคนที่เลือกจานนั้นเป็นจานสุดท้าย */
+function everyoneRows(j,markId){
+  var map={};j.rows.forEach(function(r){map[r.id]=r});
+  var total=Number(j.players)||0;
+  var rows=dishes.map(function(d){
+    var f=(map[d.id]||{}).finals||0,pct=total?Math.round(f/total*100):0;
+    return {name:d.name,dish:d,picks:f,finals:f,score:f,prefix:'',suffix:' คน ('+pct+'%)',badge:'คนชอบที่สุด',mark:d.id===markId?'จานของคุณ':''};
+  });
+  rows.sort(function(a,b){return b.finals-a.finals||a.name.localeCompare(b.name)});
   return rows;
-}
-function gameRows(){
-  return sortRows(G.pool.map(function(f){return {name:f.name,dish:f,picks:G.picks[f.id]||0,duels:G.duels[f.id]||0}}));
-}
-function deviceRows(){
-  var rows=[];
-  if(G.totals){
-    Object.keys(G.totals.items).forEach(function(k){
-      var it=G.totals.items[k],m=null;
-      for(var i=0;i<dishes.length;i++){if(dishes[i].name.trim().toLowerCase()===k){m=dishes[i];break}}
-      rows.push({name:it.name,dish:m||{name:it.name},picks:it.picks,duels:it.duels});
-    });
-  }
-  return sortRows(rows);
-}
-function draw(rows,note,mode){
-  SS.renderBars($('#bars'),rows);
-  $('#topLine').textContent=SS.topLine(rows,mode);
-  $('#statsNote').textContent=note;
 }
 function setState(text,retry,loading){
   var box=$('#statsState');
@@ -212,45 +196,53 @@ function setState(text,retry,loading){
 }
 function showEveryone(){
   var tok=++statsToken;
-  $('#bars').innerHTML='';$('#topLine').textContent='';$('#statsNote').textContent='';
-  setState('กำลังโหลดสถิติของทุกคน...',false,true);
+  $('#bars').innerHTML='';$('#topLine').textContent='';$('#statsNote').textContent='';$('#resetDevice').hidden=true;
+  setState('กำลังโหลดโหวตของทุกคน...',false,true);
   var ready=G.submitP?G.submitP.then(function(){},function(){}):Promise.resolve();
   ready.then(function(){return stats.get()}).then(function(j){
     if(tok!==statsToken)return;
     if(!j||!j.ok||!Array.isArray(j.rows))throw new Error('stats');
-    var map={};j.rows.forEach(function(r){map[r.id]=r});
-    var rows=dishes.map(function(d){
-      var r=map[d.id]||{picks:0,duels:0,finals:0};
-      return {name:d.name,dish:d,picks:r.picks,duels:r.duels,finals:r.finals};
-    });
-    var games=Number(j.games)||0;
-    rows.forEach(function(r){
-      var pct=games?Math.round(r.finals/games*100):0;
-      r.score=r.finals;r.prefix='เลือกเป็นจานสุดท้าย ';r.suffix=' ครั้ง ('+pct+'%) · ชนะดวลรวม '+r.picks+' ครั้ง';r.badge='คนชอบที่สุด';
-    });
-    rows.sort(function(a,b){return b.finals-a.finals||b.picks-a.picks||a.name.localeCompare(b.name)});
+    var rows=everyoneRows(j,G.champ&&G.champ.id);
     $('#statsState').hidden=true;
-    draw(rows,'มีคนเล่นแล้ว '+games+' เกม แท่งแสดงจำนวนครั้งที่แต่ละจานถูกเลือกเป็นจานสุดท้ายของเกม','final');
+    SS.renderBars($('#bars'),rows);
+    $('#topLine').textContent=SS.topLine(rows,'final');
+    $('#statsNote').textContent='มีคนโหวตแล้ว '+(Number(j.players)||0)+' คน นับเฉพาะจานสุดท้ายที่แต่ละคนเลือก ไม่นับจานที่กดระหว่างเกม';
   }).catch(function(){
     if(tok!==statsToken)return;
     setState('โหลดสถิติรวมไม่ได้ในตอนนี้',true,false);
   });
 }
-function setTab(mode){
+function showDevice(){
   statsToken++;
-  $('#tabGame').setAttribute('aria-selected',String(mode==='game'));
-  $('#tabAll').setAttribute('aria-selected',String(mode==='all'));
   $('#statsState').hidden=true;
-  $('#resetDevice').hidden=true;
-  $('#statsTitle').textContent=mode==='all'&&secondTab()==='everyone'?'ทุกคนเลือกจานไหนเป็นจานสุดท้าย':'จานที่ถูกเลือกมากสุด';
-  if(mode==='game'){
-    draw(gameRows(),'นับหนึ่งครั้งทุกครั้งที่คุณเลือกจานนั้นในการดวลแต่ละรอบ');
-    return;
-  }
-  if(secondTab()==='everyone'){showEveryone();return}
-  var g=G.totals?G.totals.games:0;
-  draw(deviceRows(),'เล่นไปแล้ว '+g+' เกมในเครื่องนี้ (เก็บแยกตามเครื่อง)');
+  var t=SS.getTotals(),rows=[];
+  dishes.forEach(function(d){
+    var it=t.items[d.name.trim().toLowerCase()],f=it?it.finals||0:0;
+    rows.push({name:d.name,dish:d,picks:f,finals:f,score:f,prefix:'',suffix:' ครั้ง',badge:'ชอบที่สุด',mark:G.champ&&d.id===G.champ.id?'จานของคุณ':''});
+  });
+  rows.sort(function(a,b){return b.finals-a.finals||a.name.localeCompare(b.name)});
+  SS.renderBars($('#bars'),rows);
+  $('#topLine').textContent=SS.topLine(rows,'final');
+  $('#statsNote').textContent='ตอนนี้เห็นเฉพาะเกมที่เล่นในเครื่องนี้ ('+(t.games||0)+' เกม) ผู้จัดยังไม่ได้เปิดสถิติรวมของทุกคน';
   $('#resetDevice').hidden=false;
+}
+
+/* กระดานโหวตที่หน้าแรกก่อนเล่น */
+var boardTok=0;
+function loadBoard(){
+  if(!shared||isDraft){$('#board').hidden=true;return}
+  var tok=++boardTok;
+  stats.get().then(function(j){
+    if(tok!==boardTok||!j||!j.ok||!Array.isArray(j.rows))return;
+    var total=Number(j.players)||0;
+    if(total<1){$('#board').hidden=true;return}
+    var rows=everyoneRows(j,null);
+    $('#board').hidden=false;
+    $('#boardCount').textContent=total+' คนโหวตแล้ว';
+    SS.renderBars($('#boardBars'),rows);
+    $('#boardTop').textContent=SS.topLine(rows,'final');
+    $('#boardNote').textContent='นับเฉพาะจานสุดท้ายที่แต่ละคนเลือก เล่นจบเกมเพื่อร่วมโหวตด้วย';
+  });
 }
 
 /* ---------- wiring ---------- */
@@ -266,14 +258,12 @@ $('#startBtn').addEventListener('click',startGame);
 $('#quit').addEventListener('click',function(){lock(true);show('start')});
 $('#again').addEventListener('click',startGame);
 $('#home').addEventListener('click',function(){show('start')});
-$('#tabGame').addEventListener('click',function(){setTab('game')});
-$('#tabAll').addEventListener('click',function(){setTab('all')});
 $('#statsRetry').addEventListener('click',showEveryone);
 SS.twoStep($('#resetDevice'),'แตะอีกครั้งเพื่อล้าง',function(){
   if(!store.ok)return;
   store.set(SS.KEY_TOTALS,{games:0,items:{}});
   G.totals={games:0,items:{}};
-  setTab('all');
+  showDevice();
 });
 window.addEventListener('hashchange',function(){window.location.reload()});
 
@@ -294,13 +284,7 @@ if(!RM&&window.matchMedia&&window.matchMedia('(hover: hover)').matches){
   var draft=window.location.hash==='#draft'?store.get(SS.KEY_DRAFT):null;
   if(draft){applyMenu(SS.normalizeMenu(draft),true);return}
   SS.loadPublished().then(function(r){
-    applyMenu(r.menu,false);
-    if(shared){
-      stats.get().then(function(j){
-        var g=j&&j.ok?Number(j.games)||0:0;
-        if(g>0){$('#gamesLine').hidden=false;$('#gamesText').textContent='มีคนเล่นแล้ว '+g+' เกม'}
-      });
-    }
+    applyMenu(r.menu,false);loadBoard();
   });
 })();
 })();

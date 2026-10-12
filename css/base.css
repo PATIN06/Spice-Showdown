@@ -154,3 +154,5 @@ textarea.input{min-height:92px;resize:vertical;line-height:1.45}
 }
 
 .how-title{font:500 1rem var(--f-body);color:var(--gold);margin:22px 0 6px}
+.badge.mine{background:rgba(111,213,138,.16);color:var(--ok);border-color:rgba(111,213,138,.4)}
+.bar-name{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;overflow-wrap:anywhere}

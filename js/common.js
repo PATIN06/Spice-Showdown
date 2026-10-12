@@ -318,10 +318,11 @@ SS.renderBars=function(ol,rows){
     var head=SS.el('div','bar-top');
     var nm=SS.el('span','bar-name',r.name);
     if(isTop){nm.appendChild(SS.el('span','badge',r.badge||'ถูกเลือกมากสุด'))}
+    if(r.mark)nm.appendChild(SS.el('span','badge mine',r.mark));
     var val=SS.el('span','bar-val');
     var b=document.createElement('b');SS.countUp(b,s,i*70,800);
-    val.appendChild(document.createTextNode(r.prefix||'เลือก '));val.appendChild(b);
-    val.appendChild(document.createTextNode(r.suffix||(' ครั้ง · ลงสนาม '+r.duels+' รอบ')));
+    val.appendChild(document.createTextNode(r.prefix!=null?r.prefix:'เลือก '));val.appendChild(b);
+    val.appendChild(document.createTextNode(r.suffix!=null?r.suffix:(' ครั้ง · ลงสนาม '+r.duels+' รอบ')));
     head.appendChild(nm);head.appendChild(val);
     var tr=SS.el('div','track');
     var fl=SS.el('div','fill');

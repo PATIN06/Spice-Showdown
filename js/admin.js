@@ -485,19 +485,19 @@ window.addEventListener('beforeunload',function(e){
 /* ---------- สถิติรวมทุกคน ---------- */
 function paintStats(j){
   var map={};j.rows.forEach(function(r){map[r.id]=r});
-  var games=Number(j.games)||0;
+  var total=Number(j.players)||0;
   var rows=published.dishes.map(function(d){
-    var r=map[d.id]||{picks:0,duels:0,finals:0},pct=games?Math.round(r.finals/games*100):0;
-    return {name:d.name,dish:d,picks:r.picks,duels:r.duels,finals:r.finals,score:r.finals,prefix:'จานสุดท้าย ',suffix:' ครั้ง ('+pct+'%) · ชนะดวล '+r.picks+' ครั้ง',badge:'คนชอบที่สุด'};
-  }).sort(function(a,b){return b.finals-a.finals||b.picks-a.picks||a.name.localeCompare(b.name)});
-  if(!games){
-    $('#statBars').innerHTML='';$('#statBars').appendChild(el('li','empty','ยังไม่มีใครเล่น ผลจะขึ้นที่นี่ทันทีที่เกมแรกจบ'));
+    var f=(map[d.id]||{}).finals||0,pct=total?Math.round(f/total*100):0;
+    return {name:d.name,dish:d,picks:f,finals:f,score:f,prefix:'',suffix:' คน ('+pct+'%)',badge:'คนชอบที่สุด'};
+  }).sort(function(a,b){return b.finals-a.finals||a.name.localeCompare(b.name)});
+  if(!total){
+    $('#statBars').innerHTML='';$('#statBars').appendChild(el('li','empty','ยังไม่มีใครโหวต ผลจะขึ้นที่นี่ทันทีที่มีคนเล่นจบเกมแรก'));
     $('#statTop').textContent='';
   }else{
     SS.renderBars($('#statBars'),rows);
     $('#statTop').textContent=SS.topLine(rows,'final');
   }
-  $('#statNote').textContent='มีคนเล่นแล้ว '+games+' เกม รายการนี้รีเฟรชเองทุก 20 วินาที (ล้างสถิติ: ดูใน docs/STATS.th.md)';
+  $('#statNote').textContent='มีคนโหวตแล้ว '+total+' คน นับเฉพาะจานสุดท้ายของแต่ละคน รายการนี้รีเฟรชเองทุก 20 วินาที (ล้างสถิติ: ดูใน docs/STATS.th.md)';
 }
 function refreshStats(){
   if(statsBusy||!stats.enabled)return;

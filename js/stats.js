@@ -10,7 +10,7 @@
 var SS=window.SS,store=SS.store;
 var url=String((window.SS_CONFIG||{}).statsUrl||'').trim();
 var enabled=/^https:\/\/script\.google\.com\/(a\/macros\/[A-Za-z0-9.-]+\/)?macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(url);
-var KEY_OUTBOX='ss.outbox.v2',RETRY={busy:1,network:1,timeout:1},memBox=[];
+var KEY_OUTBOX='ss.outbox.v3',RETRY={busy:1,network:1,timeout:1},memBox=[];
 var st=SS.stats={enabled:enabled,url:url};
 
 SS.gameId=function(){
@@ -18,6 +18,13 @@ SS.gameId=function(){
   try{buf=new Uint8Array(20);window.crypto.getRandomValues(buf);for(i=0;i<20;i++)out+=a[buf[i]%36]}
   catch(e){out='';for(i=0;i<20;i++)out+=a[Math.floor(Math.random()*36)]}
   return out;
+};
+/* รหัสผู้เล่นแบบสุ่มเก็บในเบราว์เซอร์ ใช้ให้คนเดิมเล่นใหม่แล้วโหวตเก่าถูกแทนที่ (ไม่มีข้อมูลส่วนตัว) */
+var memPid=null;
+SS.playerId=function(){
+  var k='ss.pid',v=store.get(k);
+  if(typeof v==='string'&&/^[A-Za-z0-9]{8,40}$/.test(v))return v;
+  v=memPid||SS.gameId();memPid=v;store.set(k,v);return v;
 };
 if(!enabled){
   st.get=st.submit=st.flush=function(){return Promise.resolve({ok:false,error:'disabled'})};
@@ -62,7 +69,7 @@ function flush(){
     var box=getBox();
     if(!box.length)return Promise.resolve({ok:true,sent:sent,left:0});
     var g=box[0];
-    return call('POST',{action:'play',gameId:g.gameId,rounds:g.rounds,names:g.names},{retries:1,timeout:20000}).then(function(j){
+    return call('POST',{action:'play',gameId:g.gameId,player:g.player,rounds:g.rounds,names:g.names},{retries:1,timeout:20000}).then(function(j){
       var transient=!j.ok&&(RETRY[j.error]||j.error==='server_error'||j.error==='not_setup');
       if(transient){
         g.tries=(g.tries||0)+1;
@@ -80,7 +87,7 @@ st.flush=flush;
 /* game = {gameId, rounds:[[winId,loseId],...], names:{id:name}}. resolve {ok:true} เมื่อเซิร์ฟเวอร์รับแล้ว หรือ {ok:false,left} เมื่อค้างในเครื่อง */
 st.submit=function(game){
   var box=getBox();
-  box.push({gameId:game.gameId,rounds:game.rounds,names:game.names,t:Date.now(),tries:0});
+  box.push({gameId:game.gameId,player:SS.playerId(),rounds:game.rounds,names:game.names,t:Date.now(),tries:0});
   setBox(box);
   return flush();
 };

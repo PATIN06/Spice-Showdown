@@ -9,5 +9,5 @@ Thai documentation is the main one: [README.th.md](README.th.md), [docs/GITHUB.t
 ## Quick facts
 
 - Menu, photos and texts live in the repo (`data/menu.json`, `images/`). The admin page needs a fine-grained GitHub token with **Contents: Read and write** on that one repo.
-- Without a stats backend (`statsUrl` empty in `config.js`) the game works and stats stay per device.
+- Shared stats count only each player's final pick (one vote per device, replaying replaces it) and show on the start page and after the game. Without a stats backend (`statsUrl` empty in `config.js`) stats stay per device.
 - Local test: `python3 -m http.server 8000`, then open `http://localhost:8000/`.

@@ -118,3 +118,7 @@ kbd{font:500 13px var(--f-mono);padding:3px 10px;border-radius:8px;border:1px so
 .champ-name{background-image:linear-gradient(95deg,#ffd23f,#ff8a1f 25%,#ff3b1d 50%,#ff8a1f 75%,#ffd23f)}
 h1 .hot{background-image:linear-gradient(95deg,#ffd23f,#ff8a1f 25%,#ff3b1d 50%,#ff8a1f 75%,#ffd23f)}
 .btn.primary.big:not(:disabled){animation:glowPulse 2.4s ease-in-out infinite}
+
+.board{margin-top:30px;max-width:900px;animation:rise .5s both}
+.board .top-line{margin:10px 0 0}
+.board .bars{margin-top:14px}

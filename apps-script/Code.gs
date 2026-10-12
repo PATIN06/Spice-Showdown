@@ -1,7 +1,8 @@
 /**
  * ศึกจานเผ็ด: ตัวเก็บสถิติรวมของผู้เล่นทุกคน (Google Apps Script)
  *
- * เมนูกับรูปอยู่บน GitHub ส่วนไฟล์นี้ทำหน้าที่เดียวคือ "นับว่าทุกคนเลือกจานไหน"
+ * เมนูกับรูปอยู่บน GitHub ส่วนไฟล์นี้ทำหน้าที่เดียวคือ "นับว่าแต่ละคนเลือกจานไหนเป็นจานสุดท้าย"
+ * นับคนละ 1 โหวต ถ้าคนเดิมเล่นใหม่แล้วเปลี่ยนใจ โหวตเก่าจะถูกแทนที่ด้วยจานสุดท้ายล่าสุด
  * เก็บใน Google Sheet ของคุณเอง วิธีตั้งค่าอยู่ใน docs/STATS.th.md
  *
  * ความเสถียร
@@ -13,6 +14,7 @@
 
 var MAX_DISHES = 16;
 var MAX_ROWS = 300;        // จำนวนจานสูงสุดที่เก็บสถิติ (กันข้อมูลขยะ)
+var MAX_VOTERS = 5000;     // จำนวนผู้เล่นสูงสุดที่จำโหวตเดิมไว้แทนที่ได้
 var STATS_TTL = 15;        // วินาทีที่แคชสถิติ
 var RATE_PER_MIN = 150;    // เกมที่รับต่อนาที
 var LOCK_WAIT_MS = 20000;
@@ -29,12 +31,13 @@ function setup() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   if (!ss) ss = SpreadsheetApp.create('ศึกจานเผ็ด สถิติ');
   props.setProperty('SHEET_ID', ss.getId());
-  ensureSheet_(ss, 'Stats', ['id', 'name', 'picks', 'duels', 'finals']);
+  ensureSheet_(ss, 'Finals', ['id', 'name', 'finals']);
+  ensureSheet_(ss, 'Voters', ['player', 'dish id', 'dish name', 'time']);
   ensureSheet_(ss, 'Settings', ['key', 'value']);
-  ensureSheet_(ss, 'Log', ['time', 'gameId', 'final pick', 'duels', 'picks (json)']);
+  ensureSheet_(ss, 'Log', ['time', 'gameId', 'final pick', 'duels', 'player']);
   withLock_(function () {
     var st = readSettings_();
-    if (st.games === undefined || st.games === '') writeSettings_({ games: 0 });
+    if (st.players === undefined || st.players === '') writeSettings_({ players: 0 });
   });
   var msg = 'ตั้งค่าเสร็จแล้ว Sheet: ' + ss.getUrl();
   Logger.log(msg);
@@ -44,11 +47,12 @@ function setup() {
 /** ล้างสถิติทั้งหมด (รันจาก editor เมื่ออยากเริ่มนับใหม่) */
 function resetStats() {
   withLock_(function () {
-    var ss = getSS_(), sh = ss.getSheetByName('Stats'), n = sh.getLastRow();
-    if (n > 1) sh.getRange(2, 1, n - 1, 5).clearContent();
-    var log = ss.getSheetByName('Log'), m = log.getLastRow();
-    if (m > 1) log.deleteRows(2, m - 1);
-    writeSettings_({ games: 0 });
+    var ss = getSS_();
+    ['Finals', 'Voters', 'Log'].forEach(function (name) {
+      var sh = ss.getSheetByName(name), n = sh.getLastRow();
+      if (n > 1) sh.deleteRows(2, n - 1);
+    });
+    writeSettings_({ players: 0 });
     SpreadsheetApp.flush();
   });
   CacheService.getScriptCache().remove('stats');
@@ -182,29 +186,22 @@ function writeSettings_(obj) {
  * สถิติ
  * ==================================================================== */
 
-function readStatsRows_() {
-  var sh = getSS_().getSheetByName('Stats');
+function readFinals_() {
+  var sh = getSS_().getSheetByName('Finals');
   var n = sh.getLastRow();
-  return { sh: sh, rows: n > 1 ? sh.getRange(2, 1, n - 1, 5).getValues() : [] };
+  return { sh: sh, rows: n > 1 ? sh.getRange(2, 1, n - 1, 3).getValues() : [] };
 }
 
 function readStats_() {
   var cache = CacheService.getScriptCache();
   var hit = cache.get('stats');
   if (hit) { try { return JSON.parse(hit); } catch (x) { /* สร้างใหม่ */ } }
-  var s = readStatsRows_();
   var out = {
     ok: true,
-    games: Number(readSettings_().games) || 0,
+    players: Number(readSettings_().players) || 0,
     updatedAt: Date.now(),
-    rows: s.rows.map(function (r) {
-      return {
-        id: String(r[0]).trim(),
-        name: String(r[1]).trim(),
-        picks: Number(r[2]) || 0,
-        duels: Number(r[3]) || 0,
-        finals: Number(r[4]) || 0
-      };
+    rows: readFinals_().rows.map(function (r) {
+      return { id: String(r[0]).trim(), name: String(r[1]).trim(), finals: Number(r[2]) || 0 };
     }).filter(function (r) { return r.id; })
   };
   cache.put('stats', JSON.stringify(out), STATS_TTL);
@@ -212,12 +209,14 @@ function readStats_() {
 }
 
 /**
- * p.rounds = [[ผู้ชนะ, ผู้แพ้], ...] เป็น id ของจาน, p.names = { id: ชื่อ }
- * ผู้ชนะของรอบก่อนต้องอยู่ในรอบถัดไป และตัวท้าชิงต้องเป็นจานใหม่
+ * นับเฉพาะ "จานสุดท้าย" ของแต่ละคน ไม่นับจานที่เคยกดระหว่างเกม
+ * p.player = รหัสผู้เล่น (สุ่มเก็บในเบราว์เซอร์) ถ้าคนเดิมเล่นใหม่ โหวตเก่าถูกแทนที่
+ * p.rounds = [[ผู้ชนะ, ผู้แพ้], ...] ใช้ตรวจว่าเกมเป็นไปได้จริงและหาจานสุดท้าย
+ * p.names  = { id: ชื่อจาน }
  */
 function recordPlay_(p) {
-  var gameId = String(p.gameId || '');
-  if (!/^[A-Za-z0-9]{8,40}$/.test(gameId)) throw fail_('bad_game', 'รหัสเกมไม่ถูกต้อง');
+  var gameId = String(p.gameId || ''), player = String(p.player || '');
+  if (!/^[A-Za-z0-9]{8,40}$/.test(gameId) || !/^[A-Za-z0-9]{8,40}$/.test(player)) throw fail_('bad_game', 'รหัสเกมไม่ถูกต้อง');
   var cache = CacheService.getScriptCache();
   if (cache.get('g:' + gameId)) return { ok: true, duplicate: true };
 
@@ -225,8 +224,7 @@ function recordPlay_(p) {
   var names = p.names && typeof p.names === 'object' ? p.names : {};
   if (rounds.length < 1 || rounds.length > MAX_DISHES - 1) throw fail_('bad_game', 'จำนวนรอบไม่ถูกต้อง');
 
-  var picks = Object.create(null), duels = Object.create(null), seen = Object.create(null), nm = Object.create(null);
-  var prev = null, champ = null, i;
+  var seen = Object.create(null), prev = null, champ = null, i;
   function idOk(x) { return typeof x === 'string' && /^[A-Za-z0-9_-]{1,60}$/.test(x); }
   for (i = 0; i < rounds.length; i++) {
     var r = rounds[i];
@@ -241,16 +239,10 @@ function recordPlay_(p) {
       if (seen[other]) throw fail_('bad_game', 'ลำดับการดวลไม่ต่อเนื่อง');
       seen[other] = 1;
     }
-    picks[w] = (picks[w] || 0) + 1;
-    duels[w] = (duels[w] || 0) + 1;
-    duels[l] = (duels[l] || 0) + 1;
     prev = w; champ = w;
   }
-  Object.keys(seen).forEach(function (id) {
-    var n = clean_(names[id], 40);
-    if (!n) throw fail_('bad_game', 'ไม่มีชื่อจาน');
-    nm[id] = n;
-  });
+  var champName = clean_(names[champ], 40);
+  if (!champName) throw fail_('bad_game', 'ไม่มีชื่อจาน');
 
   var bucket = 'r:' + Math.floor(Date.now() / 60000);
   var used = Number(cache.get(bucket) || 0);
@@ -264,31 +256,46 @@ function recordPlay_(p) {
       var ids = log.getRange(from, 2, n - from + 1, 1).getValues();
       for (var k = 0; k < ids.length; k++) if (String(ids[k][0]) === gameId) return true;
     }
-    var s = readStatsRows_(), rows = s.rows, idx = Object.create(null);
+    var f = readFinals_(), rows = f.rows, idx = Object.create(null);
     rows.forEach(function (row, j) { idx[String(row[0]).trim()] = j; });
-    Object.keys(duels).forEach(function (id) {
+    function add(id, name, delta) {
       if (!(id in idx)) {
-        if (rows.length >= MAX_ROWS) return;
-        rows.push([cellSafe_(id), cellSafe_(nm[id]), 0, 0, 0]);
+        if (delta <= 0 || rows.length >= MAX_ROWS) return;
+        rows.push([cellSafe_(id), cellSafe_(name), 0]);
         idx[id] = rows.length - 1;
       }
       var row = rows[idx[id]];
-      row[1] = cellSafe_(nm[id]);
-      row[2] = (Number(row[2]) || 0) + (picks[id] || 0);
-      row[3] = (Number(row[3]) || 0) + duels[id];
-      if (id === champ) row[4] = (Number(row[4]) || 0) + 1;
-    });
-    fmtText_(s.sh, rows.length, [1, 2]);
-    s.sh.getRange(2, 1, rows.length, 5).setValues(rows);
-    writeSettings_({ games: (Number(readSettings_().games) || 0) + 1 });
-    var named = {};
-    Object.keys(picks).forEach(function (id) { named[nm[id]] = picks[id]; });
-    log.appendRow([new Date(), gameId, cellSafe_(nm[champ]), rounds.length, JSON.stringify(named)]);
+      if (name) row[1] = cellSafe_(name);
+      row[2] = Math.max(0, (Number(row[2]) || 0) + delta);
+    }
+
+    // หาโหวตเดิมของคนนี้
+    var vs = ss.getSheetByName('Voters'), vn = vs.getLastRow(), vals = vn > 1 ? vs.getRange(2, 1, vn - 1, 4).getValues() : [], at = -1;
+    for (var v = 0; v < vals.length; v++) if (String(vals[v][0]).trim() === player) { at = v; break; }
+    var isNew = at < 0;
+    if (at >= 0) {
+      var oldId = String(vals[at][1]).trim();
+      if (oldId !== champ) { add(oldId, '', -1); add(champ, champName, 1); }
+      else add(champ, champName, 0);
+      vals[at] = [cellSafe_(player), cellSafe_(champ), cellSafe_(champName), new Date()];
+    } else {
+      add(champ, champName, 1);
+      if (vals.length < MAX_VOTERS) vals.push([cellSafe_(player), cellSafe_(champ), cellSafe_(champName), new Date()]);
+    }
+    if (rows.length) {
+      fmtText_(f.sh, rows.length, [1, 2]);
+      f.sh.getRange(2, 1, rows.length, 3).setValues(rows);
+    }
+    fmtText_(vs, vals.length, [1, 2, 3]);
+    vs.getRange(2, 1, vals.length, 4).setValues(vals);
+    var total = rows.reduce(function (a, r) { return a + (Number(r[2]) || 0); }, 0);
+    writeSettings_({ players: total });
+    log.appendRow([new Date(), gameId, cellSafe_(champName), rounds.length, cellSafe_(player)]);
     if (log.getLastRow() > LOG_MAX) log.deleteRows(2, LOG_TRIM);
     SpreadsheetApp.flush();
     return false;
   });
   cache.put('g:' + gameId, '1', 21600);
   cache.remove('stats');
-  return dup ? { ok: true, duplicate: true } : { ok: true, final: nm[champ] };
+  return dup ? { ok: true, duplicate: true } : { ok: true, final: champName };
 }
