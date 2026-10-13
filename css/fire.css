@@ -1,0 +1,69 @@
+/* Spice Showdown: flames, cover and face stickers. Player only. */
+#fire{position:fixed;left:0;bottom:0;width:100%;height:46vh;z-index:0;pointer-events:none;
+  -webkit-mask-image:linear-gradient(0deg,#000 35%,transparent);mask-image:linear-gradient(0deg,#000 35%,transparent);opacity:.9}
+
+/* cover */
+.cover{position:relative;margin:8px 0 0;border-radius:28px;overflow:hidden;border:1px solid rgba(255,138,31,.55);
+  box-shadow:0 0 0 1px rgba(255,59,29,.4),0 0 60px rgba(255,90,29,.55),0 24px 70px rgba(0,0,0,.55);
+  animation:coverGlow 2.4s ease-in-out infinite alternate}
+.cover>img:first-child{width:100%;height:auto;max-height:52vh;object-fit:cover;object-position:50% 30%;animation:coverShake 4s ease-in-out infinite;transform-origin:50% 60%}
+.cover::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(0deg,rgba(28,7,9,.92),rgba(28,7,9,0) 38%),radial-gradient(120% 70% at 50% 120%,rgba(255,59,29,.5),transparent 60%)}
+@keyframes coverGlow{from{box-shadow:0 0 0 1px rgba(255,59,29,.4),0 0 40px rgba(255,90,29,.4),0 24px 70px rgba(0,0,0,.55)}to{box-shadow:0 0 0 1px rgba(255,138,31,.7),0 0 90px rgba(255,120,29,.75),0 24px 70px rgba(0,0,0,.55)}}
+@keyframes coverShake{0%,100%{transform:scale(1.03) translate(0,0)}25%{transform:scale(1.045) translate(-3px,1px)}50%{transform:scale(1.04) translate(2px,-2px)}75%{transform:scale(1.05) translate(-1px,2px)}}
+.cover-fire{position:absolute;left:0;right:0;bottom:-6px;height:42%;z-index:2;display:flex;justify-content:space-around;align-items:flex-end;pointer-events:none;mix-blend-mode:screen}
+.cover-fire i{flex:1;height:100%;margin:0 -2%;border-radius:50% 50% 12% 12%/70% 70% 8% 8%;transform-origin:50% 100%;
+  background:radial-gradient(60% 70% at 50% 100%,#fff3b0 0,#ffd23f 22%,#ff7a1a 52%,rgba(255,59,29,0) 78%);
+  filter:blur(5px);animation:lick 1.1s ease-in-out infinite alternate}
+.cover-fire i:nth-child(2n){animation-duration:.8s;animation-delay:-.3s;height:78%}
+.cover-fire i:nth-child(3n){animation-duration:1.4s;animation-delay:-.7s;height:118%}
+.cover-fire i:nth-child(5n){animation-duration:.65s;animation-delay:-.2s}
+@keyframes lick{0%{transform:scale(.8,.72) skewX(-6deg);opacity:.7}50%{transform:scale(1,1.05) skewX(5deg);opacity:1}100%{transform:scale(.88,1.25) skewX(-4deg);opacity:.8}}
+
+/* flaming title */
+h1 .hot{background:linear-gradient(0deg,#ff3b1d,#ff8a1f 40%,#ffd23f 75%,#fff3b0);-webkit-background-clip:text;background-clip:text;
+  animation:flameText 1.3s ease-in-out infinite alternate;position:relative}
+@keyframes flameText{
+  0%{filter:drop-shadow(0 0 6px rgba(255,90,29,.9)) drop-shadow(0 -4px 14px rgba(255,59,29,.7));transform:translateY(0) skewX(0)}
+  50%{filter:drop-shadow(0 -2px 12px rgba(255,138,31,1)) drop-shadow(0 -10px 26px rgba(255,59,29,.8));transform:translateY(-1px) skewX(-.6deg)}
+  100%{filter:drop-shadow(0 0 8px rgba(255,210,63,.9)) drop-shadow(0 -6px 20px rgba(255,90,29,.8));transform:translateY(0) skewX(.5deg)}}
+.logo{animation:logoFlick .9s ease-in-out infinite alternate;transform-origin:50% 100%;filter:drop-shadow(0 0 6px rgba(255,90,29,.9))}
+@keyframes logoFlick{from{transform:scale(1,.94) rotate(-3deg)}to{transform:scale(.96,1.08) rotate(3deg)}}
+.vs{animation:throb 1.8s ease-in-out infinite,vsFire 1.1s ease-in-out infinite alternate}
+@keyframes vsFire{from{box-shadow:0 0 0 6px rgba(255,59,29,.18),0 0 30px rgba(255,59,29,.5),0 -8px 40px rgba(255,138,31,.4)}to{box-shadow:0 0 0 10px rgba(255,138,31,.22),0 0 60px rgba(255,90,29,.85),0 -16px 60px rgba(255,210,63,.55)}}
+.mercury{animation:merc 1.2s linear infinite;background-size:200% 100%}
+@keyframes merc{to{background-position:-200% 0}}
+.panel{position:relative}
+.panel::before{content:"";position:absolute;inset:-1px;border-radius:inherit;pointer-events:none;padding:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,138,31,.7),transparent) 0 0/250% 100%;
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:edge 3.5s linear infinite}
+@keyframes edge{to{background-position:-250% 0}}
+
+/* stickers */
+.stk{position:absolute;z-index:4;width:clamp(64px,11vw,128px);height:auto;cursor:pointer;user-select:none;-webkit-user-drag:none;
+  --r:0deg;transform:rotate(var(--r));animation:stkFloat 4.2s ease-in-out infinite;transition:filter .2s;
+  filter:drop-shadow(0 6px 10px rgba(0,0,0,.45))}
+.stk:hover{filter:drop-shadow(0 0 14px rgba(255,138,31,.9))}
+.stk.pop{animation:stkPop .6s cubic-bezier(.2,1.6,.4,1)}
+@keyframes stkFloat{0%,100%{transform:translateY(0) rotate(var(--r))}50%{transform:translateY(-9px) rotate(calc(var(--r) + 4deg))}}
+@keyframes stkPop{0%{transform:scale(1) rotate(var(--r))}40%{transform:scale(1.35) rotate(calc(var(--r) - 14deg))}100%{transform:scale(1) rotate(var(--r))}}
+.hero,.start-panel,.champ-wrap,.actions,.brand-bar,.vs{position:relative}
+.vs .stk{width:clamp(50px,7vw,84px)}
+.s-hero-a{right:0;top:-46px;--r:8deg;width:clamp(74px,13vw,150px)}
+.s-shelf{right:clamp(8px,3vw,28px);top:-34px;--r:-8deg;width:clamp(60px,9vw,100px);animation-delay:-2s}
+.s-vs-a{left:-70%;top:-70%;--r:-14deg}
+.s-vs-b{right:-70%;bottom:-75%;--r:12deg;animation-delay:-1.4s}
+.s-champ-a{left:-62%;top:20%;--r:-12deg}
+.s-champ-b{right:-62%;top:10%;--r:12deg;animation-delay:-2.2s}
+.champ-wrap{display:inline-block}
+.s-actions{right:0;top:-72px;--r:6deg;width:clamp(60px,9vw,96px)}
+.s-brand{position:relative;width:34px;--r:-6deg;animation-duration:2.4s;margin-left:2px}
+@media (max-width:600px){
+  .s-vs-a,.s-vs-b{display:none}
+  .s-champ-a{left:-40%}.s-champ-b{right:-40%}
+  .s-shelf{top:-26px}
+}
+@media (prefers-reduced-motion:reduce){
+  .cover,.cover>img:first-child,.cover-fire i,h1 .hot,.logo,.vs,.mercury,.panel::before,.stk{animation:none!important}
+  #fire{display:none}
+}
