@@ -14,7 +14,6 @@ function show(name){
   $$('.scene').forEach(function(s){s.hidden=s.id!=='scene-'+name});
   var el=$('#scene-'+name);el.classList.remove('enter');void el.offsetWidth;el.classList.add('enter');
   window.scrollTo(0,0);
-  if(name==='start')loadBoard();
 }
 function byId(id){for(var i=0;i<G.pool.length;i++){if(G.pool[i].id===id)return G.pool[i]}return null}
 
@@ -31,17 +30,8 @@ function applyMenu(m,draftMode){
   $('#tagline').textContent=m.tagline;
   var how=$('#howTo');how.innerHTML='';
   (m.howTo||[]).forEach(function(t){how.appendChild(SS.el('li',null,t))});
-  var shelf=$('#shelf');shelf.innerHTML='';shelf.removeAttribute('aria-busy');
-  dishes.forEach(function(f,i){
-    var li=document.createElement('li');li.style.animationDelay=(i*40)+'ms';
-    var im=document.createElement('img');im.alt='';SS.setImg(im,f);
-    li.appendChild(im);
-    li.appendChild(SS.el('span','n',f.name));
-    var hw=document.createElement('span');hw.innerHTML=SS.heatHTML(f.heat);li.appendChild(hw);
-    shelf.appendChild(li);
-  });
+  var shelf=$('#shelf');shelf.innerHTML='';
   var n=dishes.length;
-  $('#menuCount').textContent=n+' จาน'+(n>1?' · '+(n-1)+' รอบ':'');
   var ready=n>=3;
   $('#startBtn').disabled=!ready;
   $('#startMsg').textContent=ready?'':'เมนูนี้ต้องมีอย่างน้อย 3 จาน ให้ผู้จัดเพิ่มเมนูก่อน';
@@ -236,6 +226,7 @@ function boardMsg(text,retry){
   $('#boardRetry').hidden=!retry;
 }
 function loadBoard(){
+  return; /* กระดานโหวตซ่อนก่อนเล่น: ผู้เล่นเห็นสถิติหลังเล่นจบเท่านั้น */
   if(isDraft||(!shared&&!stats.invalid)){$('#board').hidden=true;return}
   $('#board').hidden=false;
   if(stats.invalid){boardMsg(stats.explain(),false);return}
@@ -269,7 +260,6 @@ $('#quit').addEventListener('click',function(){lock(true);show('start')});
 $('#again').addEventListener('click',startGame);
 $('#home').addEventListener('click',function(){show('start')});
 $('#statsRetry').addEventListener('click',showEveryone);
-$('#boardRetry').addEventListener('click',loadBoard);
 SS.twoStep($('#resetDevice'),'แตะอีกครั้งเพื่อล้าง',function(){
   if(!store.ok)return;
   store.set(SS.KEY_TOTALS,{games:0,items:{}});

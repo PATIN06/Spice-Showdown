@@ -18,8 +18,8 @@ if(c&&c.getContext&&!RM){
       var k=f.life/f.max;if(k>=1){fl.splice(i,1);continue}
       var r=f.r*(1-k*.8),a=Math.sin(Math.PI*Math.min(1,k*1.1))*.55;
       var g=x.createRadialGradient(f.x,f.y,0,f.x,f.y,r);
-      g.addColorStop(0,'hsla('+(52-k*40)+',100%,'+(70-k*25)+'%,'+a+')');
-      g.addColorStop(.5,'hsla('+(28-k*20)+',100%,52%,'+a*.6+')');
+      g.addColorStop(0,'hsla('+(34-k*34)+',100%,'+(62-k*20)+'%,'+a+')');
+      g.addColorStop(.5,'hsla('+(14-k*14)+',100%,48%,'+a*.6+')');
       g.addColorStop(1,'hsla(8,100%,45%,0)');
       x.fillStyle=g;x.beginPath();x.arc(f.x,f.y,r,0,6.283);x.fill();
     }
